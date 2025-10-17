@@ -1,59 +1,67 @@
 from flask import Flask, request, jsonify
-import openai
-import os
+import random
 
 app = Flask(__name__)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# 🧠 Simple “memory” to let the AI learn a bit over time
-ai_memory = []
+memory = {"last_event": None, "repeat": 0}
 
 @app.route('/')
 def home():
-    return "Killer AI server is running and thinking..."
+    return "Killer AI server is running!"
 
 @app.route('/killerai', methods=['POST'])
 def killer_ai():
     data = request.get_json(force=True)
-    print("📡 Received from Roblox:", data)
-
     event = data.get("event", "Idle")
-    player = data.get("player", "Unknown")
+    player = data.get("player", "someone")
 
-    # Add to memory
-    ai_memory.append(f"{event} with {player}")
-    ai_memory[:] = ai_memory[-20:]  # limit memory size
+    print("📡 Event:", event, "Player:", player)
 
-    # 🧠 Make AI reasoning prompt
-    prompt = f"""
-You are a stealthy killer NPC in a Roblox horror game.
-You hunt players like a murderer in Murder Mystery — act calm when in groups, but strike when alone.
-You remember recent events: {ai_memory}.
-Current event: {event} involving {player}.
+    reply_text = "..."
+    action = "Say"
 
-Decide what to say or do now. Respond in JSON with:
-{{
-  "action": "Say" | "Attack" | "Hide" | "Idle",
-  "text": "what the killer says"
-}}
-"""
+    # Prevent too much repetition
+    if event == memory["last_event"]:
+        memory["repeat"] += 1
+    else:
+        memory["repeat"] = 0
 
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
-            temperature=0.8
-        )
+    memory["last_event"] = event
 
-        ai_text = response.choices[0].message.content.strip()
-        print("🧠 AI decided:", ai_text)
-        return ai_text
+    # Generate smarter behavior
+    if event == "Idle":
+        if random.random() < 0.3:
+            reply_text = random.choice([
+                "It's too quiet...",
+                "No one around...",
+                "Patience...",
+                "I'm watching...",
+            ])
+    elif event == "SawPlayer":
+        if memory["repeat"] == 0 or random.random() < 0.3:
+            reply_text = random.choice([
+                f"I see you, {player}...",
+                "You're alone, aren't you?",
+                "Heh... perfect time.",
+                "Let's see where you go...",
+            ])
+    elif event == "AttackPlayer":
+        reply_text = random.choice([
+            f"You're mine, {player}!",
+            "Too slow!",
+            "Another one down...",
+            "Heh... one less witness.",
+        ])
+    elif event == "InnocentMode":
+        reply_text = random.choice([
+            "Just passing by...",
+            "Hmm? Oh, nothing...",
+            "They don’t suspect a thing...",
+        ])
 
-    except Exception as e:
-        print("❌ Error:", e)
-        return jsonify({"action": "Say", "text": "..."})
+    reply = {"action": action, "text": reply_text}
+    print("🤖 Sending:", reply)
+    return jsonify(reply)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=81)
