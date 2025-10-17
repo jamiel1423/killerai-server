@@ -3,11 +3,12 @@ import random
 
 app = Flask(__name__)
 
-memory = {"last_event": None, "repeat": 0}
+# 🧠 Basic memory of last event and player
+memory = {"last_event": None, "last_player": None, "repeat": 0}
 
 @app.route('/')
 def home():
-    return "Killer AI server is running!"
+    return "Killer AI server is alive..."
 
 @app.route('/killerai', methods=['POST'])
 def killer_ai():
@@ -15,52 +16,64 @@ def killer_ai():
     event = data.get("event", "Idle")
     player = data.get("player", "someone")
 
-    print("📡 Event:", event, "Player:", player)
+    print(f"📡 Received event: {event} from {player}")
 
-    reply_text = "..."
-    action = "Say"
-
-    # Prevent too much repetition
+    # Track repetition
     if event == memory["last_event"]:
         memory["repeat"] += 1
     else:
         memory["repeat"] = 0
 
     memory["last_event"] = event
+    memory["last_player"] = player
 
-    # Generate smarter behavior
+    # 🧩 Response logic — always something to say
     if event == "Idle":
-        if random.random() < 0.3:
-            reply_text = random.choice([
-                "It's too quiet...",
-                "No one around...",
-                "Patience...",
-                "I'm watching...",
-            ])
+        replies = [
+            "So quiet... for now.",
+            "They're hiding. I can feel it.",
+            "No one around... yet.",
+            "This place feels empty.",
+            "Waiting... always waiting."
+        ]
     elif event == "SawPlayer":
-        if memory["repeat"] == 0 or random.random() < 0.3:
-            reply_text = random.choice([
-                f"I see you, {player}...",
-                "You're alone, aren't you?",
-                "Heh... perfect time.",
-                "Let's see where you go...",
-            ])
+        replies = [
+            f"I see you, {player}...",
+            f"Don't run, {player}... I like the chase.",
+            "You're all alone, aren't you?",
+            "I’ve been waiting for you.",
+            "Perfect time to strike."
+        ]
     elif event == "AttackPlayer":
-        reply_text = random.choice([
-            f"You're mine, {player}!",
-            "Too slow!",
-            "Another one down...",
-            "Heh... one less witness.",
-        ])
+        replies = [
+            f"You're mine now, {player}.",
+            "Too slow.",
+            "Another one falls.",
+            "No one will find you.",
+            "You never stood a chance."
+        ]
     elif event == "InnocentMode":
-        reply_text = random.choice([
+        replies = [
+            "Act natural...",
             "Just passing by...",
-            "Hmm? Oh, nothing...",
-            "They don’t suspect a thing...",
-        ])
+            "They don’t suspect a thing.",
+            "Keep calm... blend in.",
+            "Nothing to see here..."
+        ]
+    else:
+        replies = [
+            "I'm thinking...",
+            "Hmm...",
+            "Something’s not right.",
+            "Where did they go?",
+            "I can sense fear nearby..."
+        ]
 
-    reply = {"action": action, "text": reply_text}
-    print("🤖 Sending:", reply)
+    # 🗣️ Always pick a reply, randomize it
+    reply_text = random.choice(replies)
+    reply = {"action": "Say", "text": reply_text}
+
+    print("🤖 Replying with:", reply)
     return jsonify(reply)
 
 if __name__ == "__main__":
